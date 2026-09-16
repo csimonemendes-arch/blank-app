@@ -1,6 +1,5 @@
 import streamlit as st
 import google.generativeai as genai
-from google.generativeai import types
 import urllib.parse
 
 # Configuração da página e design visual do Ateliê Literário
@@ -65,7 +64,7 @@ if destino:
         REGRAS DE CONTEXTO E DUALIDADE:
         - O idioma de entrada fornecido é '{idioma_entrada}'. Deves processá-lo de forma inteligente.
         - Toda a resposta criativa DEVE ser escrita estritamente no idioma de saída: '{idioma_saida}'.
-        - Se o tom for 'Indiferença Magnética', 'Enigmático' ou 'Flirt Elegante', sê cirúrgico e ambíguo. O texto deve jogar com a psicologia e criar uma DUALIDADE: o leitor (especialmente se for um homem ou ator como Seo Kang Jun) deve ficar na dúvida se estás a falar dele como pessoa/homem, ou se estás a elogiar a persona pública/ator ou o ambiente ao redor. Banish any 'fangirling' or submissive emotional comments unless 'Admiração Óbvia' is explicitly chosen.
+        - Se o tom for 'Indiferença Magnética', 'Enigmático' ou 'Flirt Elegante', sê cirúrgico e ambíguo. O texto deve jogar com a psicologia e criar uma DUALIDADE: o leitor (especialmente se for um homem ou ator como Seo Kang Jun) deve fique na dúvida se estás a falar dele como pessoa/homem, ou se estás a elogiar a persona pública/ator ou o ambiente ao redor. Banish any 'fangirling' or submissive emotional comments unless 'Admiração Óbvia' is explicitly chosen.
         - Se o tom for 'Elogios', reconhece o mérito artístico ou estético de igual para igual, mantendo o teu valor.
         
         REGRAS DE FORMATAÇÃO DO OUTPUT:
@@ -81,16 +80,19 @@ if destino:
 
         with st.spinner("A Entidade Literária está moldando a sua resposta..."):
             try:
+                # Puxa a chave configurada no Advanced Settings do Streamlit Cloud
                 api_key = st.secrets["GEMINI_API_KEY"]
-                client = genai.Client(api_key=api_key)
+                genai.configure(api_key=api_key)
                 
-                response = client.models.generate_content(
-                    model='gemini-3.5-flash',
-                    contents=prompt_final,
-                    config=types.GenerateContentConfig(
-                        system_instruction=system_instruction_base,
-                        temperature=0.75
-                    )
+                # Configura o modelo no novo padrão estável
+                model = genai.GenerativeModel(
+                    model_name='gemini-1.5-flash',
+                    system_instruction=system_instruction_base
+                )
+                
+                response = model.generate_content(
+                    prompt_final,
+                    generation_config={"temperature": 0.75}
                 )
                 
                 st.session_state['resposta_final'] = response.text
@@ -109,8 +111,7 @@ if 'resposta_final' in st.session_state:
     st.markdown('<div class="section-header">06 / EXPORTAR OU SALVAR TEXTO</div>', unsafe_allow_html=True)
     opcao_salvamento = st.selectbox("Escolha como deseja salvar ou enviar o seu texto:", [
         "Descarregar como Arquivo de Texto (.txt)", 
-        "Descarregar como Documento (PDF)", 
-        "Enviar por E-mail (Gmail)"
+        "Descarregar como Documento (PDF)"
     ])
     
     if opcao_salvamento == "Descarregar como Arquivo de Texto (.txt)":
@@ -131,8 +132,3 @@ if 'resposta_final' in st.session_state:
             mime="application/pdf",
             use_container_width=True
         )
-        
-    elif opcao_salvamento == "Enviar por E-mail (Gmail)":
-        texto_codificado = urllib.parse.quote(resposta_ativa)
-        link_email = f"https://google.com{texto_codificado}"
-        st.markdown(f'<a href="{link_email}" target="_blank"><button style="width:100%; border:none; background-color:#D14836; color:white; padding:10px; border-radius:5px; cursor:pointer; font-weight:bold;">✉️ Compor Mensagem no Gmail</button></a>', unsafe_allow_html=True)
